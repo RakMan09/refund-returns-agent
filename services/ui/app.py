@@ -10,15 +10,15 @@ import streamlit as st
 
 AGENT_URL = os.getenv("AGENT_SERVER_URL", "http://localhost:8002")
 STATUS_COLORS = {
-    "Awaiting User Info": "#9b5de5",
+    "Awaiting User Info": "#3a86ff",
     "Awaiting User Choice": "#2a9d8f",
-    "Awaiting Evidence": "#e76f51",
+    "Awaiting Evidence": "#f4a261",
     "Refund Pending": "#1d3557",
     "Resolved": "#2b9348",
-    "Escalated": "#c1121f",
-    "Denied": "#6c757d",
-    "Refused": "#6c757d",
-    "Status": "#4361ee",
+    "Escalated": "#c44536",
+    "Denied": "#6b7280",
+    "Refused": "#6b7280",
+    "Status": "#457b9d",
 }
 
 st.set_page_config(page_title="Refund Returns Chatbot", layout="wide")
@@ -26,14 +26,14 @@ st.markdown(
     """
     <style>
     :root {
-      --bg-a: #f6f8fb;
-      --bg-b: #eaf0f7;
+      --bg-a: #f7fafc;
+      --bg-b: #e7eef5;
       --panel: #ffffff;
-      --text: #1f2a37;
-      --border: #d9e2ec;
+      --text: #1b263b;
+      --border: #d6e1eb;
     }
     .stApp {
-      background: radial-gradient(circle at 10% 10%, #ffffff 0%, var(--bg-a) 45%, var(--bg-b) 100%);
+      background: radial-gradient(circle at 12% 12%, #ffffff 0%, var(--bg-a) 42%, var(--bg-b) 100%);
       color: var(--text);
     }
     [data-testid="stSidebar"] {
@@ -41,7 +41,7 @@ st.markdown(
       border-right: 1px solid var(--border);
     }
     .hero {
-      background: linear-gradient(120deg, #1d3557 0%, #2a9d8f 100%);
+      background: linear-gradient(120deg, #264653 0%, #457b9d 52%, #2a9d8f 100%);
       color: white;
       border-radius: 14px;
       padding: 16px 18px;
@@ -55,7 +55,7 @@ st.markdown(
     }
     .hero p {
       margin: 6px 0 0 0;
-      color: #e6f4f1;
+      color: #e3f2fd;
       font-size: 0.95rem;
     }
     .info-card {
@@ -87,7 +87,7 @@ st.markdown(
       background: #ffffff;
     }
     .control-box {
-      background: #ffffff;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
       border: 1px dashed var(--border);
       border-radius: 12px;
       padding: 10px 12px;
