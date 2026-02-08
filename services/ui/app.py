@@ -9,20 +9,104 @@ import pandas as pd
 import streamlit as st
 
 AGENT_URL = os.getenv("AGENT_SERVER_URL", "http://localhost:8002")
+STATUS_COLORS = {
+    "Awaiting User Info": "#9b5de5",
+    "Awaiting User Choice": "#2a9d8f",
+    "Awaiting Evidence": "#e76f51",
+    "Refund Pending": "#1d3557",
+    "Resolved": "#2b9348",
+    "Escalated": "#c1121f",
+    "Denied": "#6c757d",
+    "Refused": "#6c757d",
+    "Status": "#4361ee",
+}
 
 st.set_page_config(page_title="Refund Returns Chatbot", layout="wide")
-st.title("Refund Returns Chatbot")
-st.caption("Stateful multi-turn support flow with guided controls")
 st.markdown(
     """
     <style>
-    .stApp {background: linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);}
-    [data-testid="stSidebar"] {background: #ffffff;}
-    .stChatMessage {border-radius: 12px;}
+    :root {
+      --bg-a: #f6f8fb;
+      --bg-b: #eaf0f7;
+      --panel: #ffffff;
+      --text: #1f2a37;
+      --border: #d9e2ec;
+    }
+    .stApp {
+      background: radial-gradient(circle at 10% 10%, #ffffff 0%, var(--bg-a) 45%, var(--bg-b) 100%);
+      color: var(--text);
+    }
+    [data-testid="stSidebar"] {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-right: 1px solid var(--border);
+    }
+    .hero {
+      background: linear-gradient(120deg, #1d3557 0%, #2a9d8f 100%);
+      color: white;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: 0.2px;
+    }
+    .hero p {
+      margin: 6px 0 0 0;
+      color: #e6f4f1;
+      font-size: 0.95rem;
+    }
+    .info-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+    }
+    .status-chip {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .timeline-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .stChatMessage {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+    }
+    .control-box {
+      background: #ffffff;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin: 8px 0;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
+st.markdown(
+    """
+    <div class="hero">
+      <h1>Refund Returns Chatbot</h1>
+      <p>Stateful multi-turn support with policy-grounded decisions, evidence flow, and timeline tracing.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 with st.sidebar:
     st.header("Settings")
@@ -34,11 +118,10 @@ with st.sidebar:
             chat = resp.json()
         st.session_state["session_id"] = chat["session_id"]
         st.session_state["case_id"] = chat["case_id"]
-        st.session_state["messages"] = [
-            {"role": "assistant", "content": chat["assistant_message"]}
-        ]
+        st.session_state["messages"] = [{"role": "assistant", "content": chat["assistant_message"]}]
         st.session_state["controls"] = chat.get("controls", [])
         st.session_state["timeline"] = []
+        st.session_state["status_chip"] = chat.get("status_chip", "Awaiting User Info")
 
     st.markdown("---")
     st.subheader("Create Test Order")
@@ -81,6 +164,7 @@ def send_chat(payload: dict[str, Any]) -> None:
     st.session_state["messages"].append({"role": "assistant", "content": out["assistant_message"]})
     st.session_state["controls"] = out.get("controls", [])
     st.session_state["timeline"] = out.get("timeline", [])
+    st.session_state["status_chip"] = out.get("status_chip", st.session_state.get("status_chip", "Status"))
 
 
 if "session_id" not in st.session_state:
@@ -102,6 +186,7 @@ with left:
         field = ctrl.get("field", "")
         options = ctrl.get("options", [])
         key = f"ctrl_{field}_{ctype}"
+        st.markdown("<div class='control-box'>", unsafe_allow_html=True)
 
         if ctype == "text":
             txt = st.text_input(label, key=key)
@@ -173,8 +258,10 @@ with left:
                 )
                 st.rerun()
 
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with st.chat_message("user"):
-        free = st.text_input("Free chat message", key="free_chat")
+        free = st.text_input("Free chat message", key="free_chat", placeholder="Ask follow-up, status, or end chat")
         if st.button("Send message") and free.strip():
             st.session_state["messages"].append({"role": "user", "content": free})
             send_chat({"session_id": st.session_state["session_id"], "text": free})
@@ -182,8 +269,18 @@ with left:
 
 with right:
     st.subheader("Case Status")
-    st.write(f"Session: `{st.session_state.get('session_id')}`")
-    st.write(f"Case: `{st.session_state.get('case_id')}`")
+    status_chip = st.session_state.get("status_chip", "Status")
+    color = STATUS_COLORS.get(status_chip, "#4361ee")
+    st.markdown(
+        f"""
+        <div class="info-card">
+          <div><b>Session</b><br><code>{st.session_state.get('session_id')}</code></div>
+          <div style="margin-top:8px;"><b>Case</b><br><code>{st.session_state.get('case_id')}</code></div>
+          <div class="status-chip" style="background:{color};">{status_chip}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if st.button("Refresh Case Status"):
         with httpx.Client(timeout=20.0) as client:
@@ -195,10 +292,13 @@ with right:
             out = resp.json()
         st.session_state["messages"].append({"role": "assistant", "content": out["assistant_message"]})
         st.session_state["timeline"] = out.get("timeline", [])
+        st.session_state["status_chip"] = out.get("status_chip", status_chip)
 
     st.subheader("Timeline")
     timeline = st.session_state.get("timeline", [])
     if timeline:
-        st.dataframe(pd.DataFrame(timeline), use_container_width=True)
+        st.markdown("<div class='timeline-wrap'>", unsafe_allow_html=True)
+        st.dataframe(pd.DataFrame(timeline), use_container_width=True, hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.info("No timeline events yet.")

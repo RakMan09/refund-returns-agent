@@ -1,7 +1,17 @@
 {
-  "ok": true,
-  "errors": [],
+  "ok": false,
+  "errors": [
+    "secret_like_patterns_detected"
+  ],
   "warnings": [],
-  "secret_hits": [],
-  "tracked_files_count": 64
+  "secret_hits": [
+    {
+      "path": "tests/test_final_audit.py",
+      "patterns": [
+        "openai_key",
+        "generic_api_key"
+      ]
+    }
+  ],
+  "tracked_files_count": 105
 }
