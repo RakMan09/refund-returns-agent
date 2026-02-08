@@ -33,6 +33,11 @@ prepare-sft:
 prepare-dpo:
 	python3 training/dpo_train.py --prepare-only --train-pairs data/processed/dpo_pairs_train.jsonl --prepared-train data/processed/dpo_train_prepared.jsonl --prepared-val data/processed/dpo_val_prepared.jsonl
 
+preflight:
+	ruff check .
+	pytest -q
+	python3 -m compileall services pipelines training eval tests docs
+
 lint:
 	ruff check .
 
