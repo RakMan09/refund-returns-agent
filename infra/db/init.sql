@@ -37,6 +37,23 @@ CREATE TABLE IF NOT EXISTS escalations (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  session_id TEXT PRIMARY KEY,
+  case_id TEXT NOT NULL,
+  state_json JSONB NOT NULL,
+  status TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id BIGSERIAL PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS tool_call_logs (
   id BIGSERIAL PRIMARY KEY,
   tool_name TEXT NOT NULL,
@@ -45,6 +62,30 @@ CREATE TABLE IF NOT EXISTS tool_call_logs (
   error_message TEXT,
   latency_ms INTEGER NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS evidence_records (
+  evidence_id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  case_id TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  storage_path TEXT NOT NULL,
+  uploaded_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS evidence_validations (
+  id BIGSERIAL PRIMARY KEY,
+  evidence_id TEXT NOT NULL,
+  order_id TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  passed BOOLEAN NOT NULL,
+  confidence NUMERIC(4,3) NOT NULL,
+  reasons JSONB NOT NULL,
+  approach TEXT NOT NULL,
+  validated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE (evidence_id, order_id, item_id)
 );
 
 INSERT INTO orders (

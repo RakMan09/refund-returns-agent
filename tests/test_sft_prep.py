@@ -56,7 +56,15 @@ def test_build_sft_records_mixes_sources():
         }
     ]
     tweetsumm = [{"dialog": "customer asked", "summary": "agent asked for order id"}]
-    rows = build_sft_records(synthetic, tweetsumm, max_synthetic=1, max_tweetsumm=1)
-    assert len(rows) == 2
+    conversation = [{"source": "conversation_synthetic", "text": "<|user|>x<|assistant|>y"}]
+    rows = build_sft_records(
+        synthetic,
+        tweetsumm,
+        conversation,
+        max_synthetic=1,
+        max_tweetsumm=1,
+        max_conversation=1,
+    )
+    assert len(rows) == 3
     sources = sorted(r["source"] for r in rows)
-    assert sources == ["synthetic_case", "tweetsumm"]
+    assert sources == ["conversation_synthetic", "synthetic_case", "tweetsumm"]

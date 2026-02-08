@@ -1,11 +1,19 @@
+import base64
 from datetime import datetime, timezone
+from decimal import Decimal
 from hashlib import sha256
+from pathlib import Path
+from uuid import uuid4
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from services.tool_server.app.models import (
     Base,
+    ChatMessage,
+    ChatSession,
+    EvidenceRecord,
+    EvidenceValidationRecord,
     EscalationRecord,
     LabelRecord,
     Order,
@@ -19,9 +27,19 @@ def _utcnow_naive() -> datetime:
 
 
 class Repository:
-    def __init__(self, database_url: str):
+    def __init__(
+        self,
+        database_url: str,
+        evidence_storage_dir: str = "data/evidence",
+        approach_b_catalog_dir: str = "data/raw/product_catalog_images",
+        approach_b_anomaly_dir: str = "data/raw/anomaly_images",
+    ):
         self.engine = create_engine(database_url, future=True)
         self.session_factory = sessionmaker(bind=self.engine, expire_on_commit=False)
+        self.evidence_storage_dir = Path(evidence_storage_dir)
+        self.approach_b_catalog_dir = Path(approach_b_catalog_dir)
+        self.approach_b_anomaly_dir = Path(approach_b_anomaly_dir)
+        self.evidence_storage_dir.mkdir(parents=True, exist_ok=True)
 
     def create_tables(self) -> None:
         Base.metadata.create_all(self.engine)
@@ -75,12 +93,73 @@ class Repository:
                 query = query.where(Order.customer_phone_last4 == phone_last4)
             return session.scalar(query.limit(1))
 
+    def list_orders(self, customer_identifier: str) -> list[Order]:
+        with self.session_factory() as session:
+            if customer_identifier.upper().startswith("ORD-"):
+                q = select(Order).where(Order.order_id == customer_identifier)
+            elif "@" in customer_identifier:
+                q = select(Order).where(Order.customer_email == customer_identifier)
+            else:
+                q = select(Order).where(Order.customer_phone_last4 == customer_identifier)
+            return list(session.scalars(q.limit(50)).all())
+
+    def list_order_items(self, order_id: str) -> list[Order]:
+        with self.session_factory() as session:
+            q = select(Order).where(Order.order_id == order_id)
+            return list(session.scalars(q.limit(50)).all())
+
+    def create_session(self, session_id: str, case_id: str, state: dict, status: str) -> ChatSession:
+        with self.session_factory() as session:
+            existing = session.get(ChatSession, session_id)
+            if existing:
+                return existing
+            now = _utcnow_naive()
+            row = ChatSession(
+                session_id=session_id,
+                case_id=case_id,
+                state_json=state,
+                status=status,
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(row)
+            session.commit()
+            return row
+
+    def get_session(self, session_id: str) -> ChatSession | None:
+        with self.session_factory() as session:
+            return session.get(ChatSession, session_id)
+
+    def update_session_state(self, session_id: str, state_patch: dict, status: str | None = None) -> ChatSession | None:
+        with self.session_factory() as session:
+            row = session.get(ChatSession, session_id)
+            if row is None:
+                return None
+            merged = dict(row.state_json or {})
+            merged.update(state_patch)
+            row.state_json = merged
+            if status is not None:
+                row.status = status
+            row.updated_at = _utcnow_naive()
+            session.commit()
+            session.refresh(row)
+            return row
+
+    def append_chat_message(self, session_id: str, role: str, content: str) -> None:
+        with self.session_factory() as session:
+            row = ChatMessage(
+                session_id=session_id,
+                role=role,
+                content=content,
+                created_at=_utcnow_naive(),
+            )
+            session.add(row)
+            session.commit()
+
     def create_return(self, order_id: str, item_id: str, method: str) -> str:
         key = f"{order_id}:{item_id}:{method}"
         with self.session_factory() as session:
-            existing = session.scalar(
-                select(ReturnRecord).where(ReturnRecord.idempotency_key == key).limit(1)
-            )
+            existing = session.scalar(select(ReturnRecord).where(ReturnRecord.idempotency_key == key).limit(1))
             if existing:
                 return existing.rma_id
 
@@ -139,6 +218,147 @@ class Repository:
             session.add(record)
             session.commit()
             return ticket_id
+
+    def create_test_order(
+        self,
+        *,
+        customer_email: str,
+        customer_phone_last4: str,
+        item_category: str,
+        price: str,
+        shipping_fee: str,
+        status: str,
+        delivery_date,
+    ) -> str:
+        order_id = f"ORD-{uuid4().hex[:10].upper()}"
+        item_id = f"ITEM-{uuid4().hex[:8].upper()}"
+        merchant_id = "M-TEST"
+        with self.session_factory() as session:
+            row = Order(
+                order_id=order_id,
+                merchant_id=merchant_id,
+                customer_email=customer_email,
+                customer_phone_last4=customer_phone_last4,
+                item_id=item_id,
+                item_category=item_category,
+                order_date=_utcnow_naive().date(),
+                delivery_date=delivery_date,
+                item_price=price,
+                shipping_fee=shipping_fee,
+                status=status,
+            )
+            session.add(row)
+            session.commit()
+        return order_id
+
+    def get_case_status(self, case_id: str) -> tuple[str, str | None, str | None]:
+        with self.session_factory() as session:
+            s = session.scalar(select(ChatSession).where(ChatSession.case_id == case_id).limit(1))
+            if s is None:
+                return "not_found", None, None
+            if s.status in {"resolved", "pending_refund", "pending_return"}:
+                return s.status, "2-5 business days", f"TRACK-{case_id[-6:].upper()}"
+            return s.status, None, None
+
+    def upload_evidence(
+        self,
+        *,
+        session_id: str,
+        file_name: str,
+        mime_type: str,
+        size_bytes: int,
+        content_base64: str,
+    ) -> tuple[str, str]:
+        with self.session_factory() as session:
+            chat_session = session.get(ChatSession, session_id)
+            if chat_session is None:
+                raise ValueError("session_not_found")
+            file_bytes = base64.b64decode(content_base64, validate=True)
+            if len(file_bytes) != size_bytes:
+                raise ValueError("evidence_size_mismatch")
+            ext = Path(file_name).suffix or ".bin"
+            evidence_id = f"EVD-{uuid4().hex[:12].upper()}"
+            case_dir = self.evidence_storage_dir / chat_session.case_id
+            case_dir.mkdir(parents=True, exist_ok=True)
+            store_path = case_dir / f"{evidence_id}{ext}"
+            store_path.write_bytes(file_bytes)
+            row = EvidenceRecord(
+                evidence_id=evidence_id,
+                session_id=session_id,
+                case_id=chat_session.case_id,
+                file_name=file_name,
+                mime_type=mime_type,
+                size_bytes=size_bytes,
+                storage_path=str(store_path),
+                uploaded_at=_utcnow_naive(),
+            )
+            session.add(row)
+            session.commit()
+            return evidence_id, str(store_path)
+
+    def get_evidence(self, case_id: str) -> list[EvidenceRecord]:
+        with self.session_factory() as session:
+            q = select(EvidenceRecord).where(EvidenceRecord.case_id == case_id)
+            q = q.order_by(EvidenceRecord.uploaded_at.desc())
+            return list(session.scalars(q.limit(20)).all())
+
+    def validate_evidence(
+        self, *, evidence_id: str, order_id: str, item_id: str
+    ) -> tuple[bool, Decimal, list[str], str]:
+        with self.session_factory() as session:
+            existing = session.scalar(
+                select(EvidenceValidationRecord)
+                .where(EvidenceValidationRecord.evidence_id == evidence_id)
+                .where(EvidenceValidationRecord.order_id == order_id)
+                .where(EvidenceValidationRecord.item_id == item_id)
+                .limit(1)
+            )
+            if existing:
+                return (
+                    bool(existing.passed),
+                    Decimal(existing.confidence),
+                    list(existing.reasons),
+                    existing.approach,
+                )
+
+            evd = session.get(EvidenceRecord, evidence_id)
+            if evd is None:
+                raise ValueError("evidence_not_found")
+            score = Decimal("0.10")
+            reasons: list[str] = []
+            file_name = evd.file_name.lower()
+            if evd.mime_type.startswith("image/"):
+                score += Decimal("0.30")
+                reasons.append("Image MIME type accepted")
+            if evd.size_bytes >= 15_000:
+                score += Decimal("0.25")
+                reasons.append("File size suggests non-empty evidence")
+            if any(k in file_name for k in ["damage", "broken", "crack", "defect", "leak"]):
+                score += Decimal("0.25")
+                reasons.append("Filename indicates defect context")
+            if self.approach_b_catalog_dir.exists() and self.approach_b_anomaly_dir.exists():
+                score += Decimal("0.10")
+                reasons.append("Approach B reference directories detected")
+            if not reasons:
+                reasons.append("Evidence quality too low for validation")
+            confidence = min(Decimal("0.99"), score.quantize(Decimal("0.001")))
+            passed = confidence >= Decimal("0.600")
+            if passed:
+                reasons.append("Evidence considered sufficient for policy requirement")
+
+            row = EvidenceValidationRecord(
+                evidence_id=evidence_id,
+                order_id=order_id,
+                item_id=item_id,
+                passed=passed,
+                confidence=confidence,
+                reasons=reasons,
+                approach="approach_b_simulation",
+                validated_at=_utcnow_naive(),
+            )
+            session.add(row)
+            session.commit()
+            return passed, confidence, reasons, "approach_b_simulation"
 
     def log_tool_call(
         self,

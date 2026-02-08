@@ -32,3 +32,35 @@ jobs:
       - name: Tests
         run: |
           pytest -q
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+
+      - name: Start stack
+        run: |
+          docker compose up --build -d
+
+      - name: Wait and run smoke
+        run: |
+          python3 eval/stack_smoke.py --agent-url http://localhost:8002 --tool-url http://localhost:8001
+
+      - name: Stop stack
+        if: always()
+        run: |
+          docker compose down -v

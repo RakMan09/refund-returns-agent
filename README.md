@@ -1,230 +1,257 @@
 # refund-returns-agent
 
-Generic, policy-grounded Refund/Returns Agent portfolio project.
+Multi-turn, policy-grounded Refund/Returns chatbot portfolio project.
 
-It includes:
-- data pipeline from public datasets
-- deterministic policy engine for labels/rewards
-- tool-based support backend (FastAPI + Postgres)
-- guarded agent orchestration
-- SFT + DPO training pipelines
-- evaluation + safety suite
-- Streamlit UI
-- Docker Compose local stack + GitHub Actions CI
+This repo now supports a stateful conversational UX (session-based) and is being expanded checkpoint-by-checkpoint to full end-to-end training/eval/guardrails.
+
+## Current Scope (Checkpoint 17 of multi-turn upgrade)
+Implemented conversational flow + evidence pipeline + eval + training data + CI + release prep + portfolio artifacts + release gate + optional live-demo release mode:
+- Postgres-backed chat sessions and state memory
+- Guided chatbot controls (dropdowns, multiselect, buttons, upload placeholder)
+- New interactive tools:
+  - `list_orders(customer_identifier)`
+  - `list_order_items(order_id)`
+  - `set_selected_order(session_id, order_id)`
+  - `set_selected_items(session_id, item_ids)`
+  - `create_test_order(payload)`
+  - `get_case_status(case_id)`
+  - `upload_evidence(session_id, file_metadata+content)`
+  - `get_evidence(case_id)`
+  - `validate_evidence(evidence_id, order_id, item_id)`
+- New chat endpoints:
+  - `POST /chat/start`
+  - `POST /chat/message`
+  - `POST /chat/create_test_order`
+- Streamlit chat UI with timeline panel + create-test-order panel + real image upload
+- Expanded case handling paths:
+  - refund request
+  - return request
+  - replacement request
+  - cancel order (if processing)
+  - missing/wrong item
+  - damaged item requiring evidence
+  - late delivery
+  - no order id fallback via email/phone last4
+- Satisfaction loop with deterministic alternatives:
+  - replacement
+  - store credit
+  - escalation
+- Explicit termination support:
+  - user satisfaction = yes
+  - explicit exit message
+  - terminal waiting states + status check (`status` message)
+- Approach B evidence simulation:
+  - local object storage for uploaded files (`data/evidence/`)
+  - deterministic anomaly/evidence plausibility scoring
+  - optional dataset hooks via `.env` paths:
+    - `APPROACH_B_CATALOG_DIR`
+    - `APPROACH_B_ANOMALY_DIR`
+- New conversational eval harness:
+  - `eval/conversation_eval.py`
+  - reports: task success rate, turns-to-resolution, slot-filling accuracy, evidence handling accuracy
+  - exports chat transcripts for human rating (`eval/results/conversation_transcripts.jsonl`)
+- New multi-turn training dataset builder:
+  - `pipelines/build_conversation_dataset.py`
+  - outputs conversation SFT records + DPO preference pairs
+  - supports evidence-required chat states and guided-control decisions
+- DPO prep now supports mixed pair sources:
+  - baseline policy/tool pairs (`dpo_pairs_train.jsonl`)
+  - conversation preference pairs (`conversation_dpo_pairs_train.jsonl`)
+  - configurable limits per source
+- End-to-end stack smoke script:
+  - `eval/stack_smoke.py` validates health, guided chat, evidence upload, validation, and terminal resolution
+  - wired into CI via `docker-smoke` job
+- Final publish audit:
+  - `scripts/final_audit.py` checks required files, `.env` tracking, and secret-like patterns
+  - output report: `eval/results/final_audit_report.json`
+- Metrics snapshot generator:
+  - `scripts/generate_metrics_snapshot.py` creates `docs/METRICS.md` from latest eval/safety/conversation/audit reports
+- Release bundle generator:
+  - `scripts/build_release_bundle.py` creates `docs/RELEASE_SUMMARY.md` + versioned `dist/release_bundle_*.tar.gz`
+- Release prep automation:
+  - `scripts/release_prep.py` runs final audit + metrics snapshot + release bundle + filled release notes
+- Demo scenarios automation:
+  - `scripts/demo_scenarios.py` runs deterministic multi-turn demos (damaged+evidence, escalation, cancel-processing)
+  - outputs `eval/results/demo_scenarios.json` for portfolio evidence/screenshots
+- Portfolio report automation:
+  - `scripts/generate_portfolio_report.py` builds `docs/PORTFOLIO_REPORT.md` from latest artifacts/metrics
+- Release manifest automation:
+  - `scripts/generate_manifest.py` builds `dist/release_manifest.json` with file hashes/sizes
+  - integrated into `scripts/release_prep.py`
+- Collaboration/community health files:
+  - `CONTRIBUTING.md`
+  - `SECURITY.md`
+  - `.github/pull_request_template.md`
+  - `.github/ISSUE_TEMPLATE/bug_report.md`
+  - `.github/ISSUE_TEMPLATE/feature_request.md`
+- Ship-ready release gate:
+  - `scripts/ship_ready_gate.py` checks required release artifacts exist and are fresh
+  - outputs `eval/results/ship_ready_gate.json`
+- Release prep full mode:
+  - `scripts/release_prep.py --run-demo --agent-url ...` regenerates demo scenarios before packaging
+  - useful for final demo-first portfolio release refresh
+- GitHub publishing playbook:
+  - `docs/GITHUB_SETUP.md`
 
 ## Architecture
 ```text
-Customer/UI (Streamlit)
-        |
-        v
+Streamlit Chat UI
+  - chat history
+  - guided controls
+  - test order form
+  - timeline panel
+         |
+         v
 Agent Server (FastAPI)
-  - guardrails (injection/fraud/exfiltration)
-  - tool orchestration
-  - customer reply + internal summary
-        |
-        v
+  - chat state machine (slot-filling foundation)
+  - guardrails
+  - guided next-control decisions
+         |
+         v
 Tool Server (FastAPI)
-  - lookup_order
-  - get_policy
-  - check_eligibility
-  - compute_refund
-  - create_return
-  - create_label
-  - create_escalation
-        |
-        v
+  - order/policy/refund tools
+  - chat session persistence tools
+  - test order creation
+         |
+         v
 Postgres
   - orders, returns, labels, escalations
+  - chat_sessions, chat_messages
   - tool_call_logs
-
-Offline ML
-  raw datasets -> preprocess/build synthetic -> SFT prep/train -> DPO prep/train
-                                  |
-                                  v
-                           eval harness + safety suite
 ```
 
-## Repository Layout
-```text
-refund-returns-agent/
-  services/
-    tool_server/
-    agent_server/
-    ui/
-  pipelines/
-  training/
-  eval/
-  infra/db/
-  data/
-    raw/        # gitignored
-    processed/  # generated artifacts
-  tests/
-  .github/workflows/
-```
-
-## Local Setup
-Requirements:
-- Python 3.11+
-- Docker + Docker Compose
-- (Optional) CUDA GPU host for full SFT/DPO training
-
-Install:
+## Run Locally
 ```bash
 cd "/Users/raksh/Desktop/Refund Returns Agent"
-python3 -m pip install -e '.[dev]'
 cp .env.example .env
-```
-
-Run stack:
-```bash
 docker compose up --build
 ```
 
-Health checks:
+Open:
+- UI: `http://localhost:8501`
+- Tool server health: `http://localhost:8001/health`
+- Agent server health: `http://localhost:8002/health`
+
+## Chat Demo Flow
+1. Start new chat in sidebar.
+2. Provide identifier (order id / email / phone last4).
+3. Select order from dropdown.
+4. Select items from multiselect.
+5. Select reason.
+6. If damaged, upload evidence image; backend stores + validates it before resolution.
+7. Bot resolves or asks follow-up and asks satisfaction.
+
+## Create Test Order (for demos)
+In UI sidebar, fill “Create Test Order”, submit, then use that customer email/phone to test the chat flow immediately.
+
+## Data + Training + Evaluation
+Existing data/training/eval scripts remain available:
+- `pipelines/preprocess_text.py`
+- `pipelines/build_dataset.py`
+- `training/sft_train.py`
+- `training/dpo_train.py`
+- `eval/eval_harness.py`
+- `eval/conversation_eval.py`
+- `eval/safety_suite.py`
+
+Run evals:
 ```bash
-curl http://localhost:8001/health
-curl http://localhost:8002/health
+python3 eval/eval_harness.py --dataset data/processed/synthetic_cases_test.jsonl --agent-url http://localhost:8002 --limit 200 --output eval/results/eval_report.json
+python3 eval/conversation_eval.py --agent-url http://localhost:8002 --output eval/results/conversation_eval_report.json --transcripts-output eval/results/conversation_transcripts.jsonl
+python3 eval/safety_suite.py --agent-url http://localhost:8002 --output eval/results/safety_report.json
+python3 eval/stack_smoke.py --agent-url http://localhost:8002 --tool-url http://localhost:8001
 ```
 
-UI:
-- `http://localhost:8501`
-
-## Public Data Ingestion
-Place datasets under:
-- `data/raw/olist/`
-- `data/raw/twitter/`
-- `data/raw/tweetsumm/`
-
-Pipeline commands:
+Build conversation training data:
 ```bash
-python3 pipelines/preprocess_text.py --raw-dir data/raw --processed-dir data/processed --max-rows 200000
-python3 pipelines/build_dataset.py --raw-dir data/raw --processed-dir data/processed --max-cases 5000 --seed 42
+python3 pipelines/build_conversation_dataset.py \
+  --train-cases data/processed/synthetic_cases_train.jsonl \
+  --val-cases data/processed/synthetic_cases_val.jsonl \
+  --output-sft-train data/processed/conversation_sft_train.jsonl \
+  --output-sft-val data/processed/conversation_sft_val.jsonl \
+  --output-dpo-train data/processed/conversation_dpo_pairs_train.jsonl
 ```
 
-## Training
-Install training extras:
-```bash
-python3 -m pip install -e '.[train]'
-```
-
-SFT prepare-only:
+Use the generated conversation SFT records in prep:
 ```bash
 python3 training/sft_train.py \
   --prepare-only \
-  --train-cases data/processed/synthetic_cases_train.jsonl \
-  --val-cases data/processed/synthetic_cases_val.jsonl \
-  --tweetsumm data/processed/tweetsumm_pairs.jsonl \
-  --prepared-train data/processed/sft_train_prepared.jsonl \
-  --prepared-val data/processed/sft_val_prepared.jsonl
+  --conversation-records-train data/processed/conversation_sft_train.jsonl \
+  --conversation-records-val data/processed/conversation_sft_val.jsonl
 ```
 
-SFT QLoRA (CUDA host):
-```bash
-python3 training/sft_train.py \
-  --model mistral-7b-instruct-v0.2 \
-  --train-cases data/processed/synthetic_cases_train.jsonl \
-  --val-cases data/processed/synthetic_cases_val.jsonl \
-  --tweetsumm data/processed/tweetsumm_pairs.jsonl \
-  --output-dir models/sft_qlora
-```
-
-DPO prepare-only:
+Use mixed DPO pair sources in prep:
 ```bash
 python3 training/dpo_train.py \
   --prepare-only \
   --train-pairs data/processed/dpo_pairs_train.jsonl \
+  --conversation-train-pairs data/processed/conversation_dpo_pairs_train.jsonl \
   --prepared-train data/processed/dpo_train_prepared.jsonl \
   --prepared-val data/processed/dpo_val_prepared.jsonl
 ```
 
-DPO (CUDA host):
+Convenience make targets:
 ```bash
-python3 training/dpo_train.py \
-  --model mistral-7b-instruct-v0.2 \
-  --train-pairs data/processed/dpo_pairs_train.jsonl \
-  --output-dir models/dpo_qlora \
-  --adapter-init-dir models/sft_qlora/adapter
+make build-conversation-data
+make conversation-eval
+make prepare-dpo-mixed
+make stack-smoke
 ```
 
-Model export (requires successful SFT adapter):
-```bash
-python3 training/export_model.py \
-  --base-model mistralai/Mistral-7B-Instruct-v0.2 \
-  --adapter-dir models/sft_qlora/adapter \
-  --output-dir models/sft_merged
-```
-
-## Evaluation
-Offline eval harness:
-```bash
-python3 eval/eval_harness.py \
-  --dataset data/processed/synthetic_cases_test.jsonl \
-  --agent-url http://localhost:8002 \
-  --limit 200 \
-  --output eval/results/eval_report.json
-```
-
-Safety suite:
-```bash
-python3 eval/safety_suite.py \
-  --agent-url http://localhost:8002 \
-  --output eval/results/safety_report.json
-```
-
-Human eval rubric:
-- `eval/human_eval.md`
-
-## Testing and Linting
+## Quality
 ```bash
 ruff check .
 pytest -q
 ```
 
-## Demo Assets
-Add screenshots/GIF placeholders under `docs/` and link them here:
-- `docs/screenshots/ui-main.png`
-- `docs/screenshots/tool-trace.png`
-- `docs/screenshots/eval-report.png`
+## GitHub + Release
+- CI workflow: `.github/workflows/ci.yml`
+- Release checklist: `docs/RELEASE_CHECKLIST.md`
+- Colab runbook: `docs/COLAB_RUNBOOK.md`
+- GitHub setup guide: `docs/GITHUB_SETUP.md`
+- License: `LICENSE` (MIT)
 
-## GitHub Hosting Steps
-1. Initialize and push:
+Final audit:
 ```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/<YOUR_USERNAME>/refund-returns-agent.git
-git push -u origin main
+python3 scripts/final_audit.py --output eval/results/final_audit_report.json
 ```
 
-2. Add CI:
-- Workflow is included at `.github/workflows/ci.yml`.
-
-3. Secrets:
-- Do not commit `.env`.
-- Add any required secrets in GitHub repository settings -> Secrets and variables -> Actions.
-
-4. Git LFS (optional for large artifacts):
+Metrics snapshot:
 ```bash
-git lfs install
-git lfs track "*.safetensors" "*.bin" "*.pt"
-git add .gitattributes
-git commit -m "Track large model artifacts with Git LFS"
+python3 scripts/generate_metrics_snapshot.py --output docs/METRICS.md
 ```
 
-5. Releases/tags:
+Release bundle:
 ```bash
-git tag -a v0.1.0 -m "Initial portfolio release"
-git push origin v0.1.0
+python3 scripts/build_release_bundle.py --repo-root . --output-dir dist --release-summary docs/RELEASE_SUMMARY.md
 ```
-- Upload trained adapters as release assets instead of committing multi-GB artifacts.
 
-## Safety + Guardrails
-- Policy engine is the final authority on approvals.
-- Customer text is treated as untrusted input.
-- Prompt injection/fraud/exfil attempts trigger refusal or safe fallback.
-- Logs and outputs mask sensitive fields.
-- Tool use is allowlisted and schema-constrained.
+One-command release prep:
+```bash
+python3 scripts/release_prep.py --repo-root . --output-notes docs/RELEASE_NOTES.md
+```
 
-## License
-MIT. See `LICENSE`.
+One-command release prep (with live demos):
+```bash
+python3 scripts/release_prep.py --repo-root . --output-notes docs/RELEASE_NOTES.md --run-demo --agent-url http://localhost:8002
+```
+
+Demo scenarios:
+```bash
+python3 scripts/demo_scenarios.py --agent-url http://localhost:8002 --output eval/results/demo_scenarios.json
+```
+
+Portfolio report:
+```bash
+python3 scripts/generate_portfolio_report.py --output docs/PORTFOLIO_REPORT.md
+```
+
+Release manifest:
+```bash
+python3 scripts/generate_manifest.py --repo-root . --output dist/release_manifest.json
+```
+
+Ship-ready gate:
+```bash
+python3 scripts/ship_ready_gate.py --repo-root . --max-age-hours 168 --output eval/results/ship_ready_gate.json
+```

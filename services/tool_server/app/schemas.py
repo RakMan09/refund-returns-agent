@@ -37,6 +37,76 @@ class LookupOrderResponse(BaseModel):
     found: bool
 
 
+class ListOrdersRequest(BaseModel):
+    customer_identifier: str
+
+
+class OrderSummary(BaseModel):
+    order_id: str
+    status: str
+    order_date: date
+    delivery_date: date | None
+
+
+class ListOrdersResponse(BaseModel):
+    orders: list[OrderSummary]
+
+
+class ListOrderItemsRequest(BaseModel):
+    order_id: str
+
+
+class OrderItem(BaseModel):
+    item_id: str
+    item_category: str
+    item_price: Decimal
+    shipping_fee: Decimal
+
+
+class ListOrderItemsResponse(BaseModel):
+    items: list[OrderItem]
+
+
+class CreateSessionRequest(BaseModel):
+    session_id: str
+    case_id: str
+    state: dict = Field(default_factory=dict)
+    status: str = "active"
+
+
+class GetSessionRequest(BaseModel):
+    session_id: str
+
+
+class SetSelectedOrderRequest(BaseModel):
+    session_id: str
+    order_id: str
+
+
+class SetSelectedItemsRequest(BaseModel):
+    session_id: str
+    item_ids: list[str]
+
+
+class UpdateSessionStateRequest(BaseModel):
+    session_id: str
+    state_patch: dict
+    status: str | None = None
+
+
+class SessionResponse(BaseModel):
+    session_id: str
+    case_id: str
+    state: dict
+    status: str
+
+
+class AppendChatMessageRequest(BaseModel):
+    session_id: str
+    role: Literal["user", "assistant", "system"]
+    content: str
+
+
 class GetPolicyRequest(BaseModel):
     merchant_id: str
     item_category: str
@@ -111,3 +181,73 @@ class CreateEscalationRequest(BaseModel):
 
 class CreateEscalationResponse(BaseModel):
     ticket_id: str
+
+
+class CreateTestOrderRequest(BaseModel):
+    customer_email: EmailStr
+    customer_phone_last4: str = Field(min_length=4, max_length=4)
+    product_name: str
+    quantity: int = Field(default=1, ge=1, le=20)
+    item_category: str
+    price: Decimal = Field(default=Decimal("49.99"), gt=Decimal("0"))
+    shipping_fee: Decimal = Field(default=Decimal("5.00"), ge=Decimal("0"))
+    status: Literal["processing", "shipped", "delivered"] = "processing"
+    delivery_date: date | None = None
+
+
+class CreateTestOrderResponse(BaseModel):
+    order_id: str
+
+
+class GetCaseStatusRequest(BaseModel):
+    case_id: str
+
+
+class GetCaseStatusResponse(BaseModel):
+    status: str
+    eta: str | None
+    refund_tracking: str | None
+
+
+class UploadEvidenceRequest(BaseModel):
+    session_id: str
+    file_name: str
+    mime_type: str
+    size_bytes: int = Field(ge=1, le=10_000_000)
+    content_base64: str = Field(min_length=16)
+
+
+class UploadEvidenceResponse(BaseModel):
+    evidence_id: str
+    stored_path: str
+
+
+class GetEvidenceRequest(BaseModel):
+    case_id: str
+
+
+class EvidenceSummary(BaseModel):
+    evidence_id: str
+    session_id: str
+    case_id: str
+    file_name: str
+    mime_type: str
+    size_bytes: int
+    uploaded_at: str
+
+
+class GetEvidenceResponse(BaseModel):
+    evidence: list[EvidenceSummary]
+
+
+class ValidateEvidenceRequest(BaseModel):
+    evidence_id: str
+    order_id: str
+    item_id: str
+
+
+class ValidateEvidenceResponse(BaseModel):
+    passed: bool
+    confidence: Decimal
+    reasons: list[str]
+    approach: str = "approach_b_simulation"

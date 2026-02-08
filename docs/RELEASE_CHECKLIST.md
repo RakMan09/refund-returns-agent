@@ -24,6 +24,13 @@
   - DPO adapter
   - Optional packed artifact tarball
 - Add links in release notes.
+- Generate release summary + bundle:
+  - `python3 scripts/generate_metrics_snapshot.py --output docs/METRICS.md`
+  - `python3 scripts/generate_portfolio_report.py --output docs/PORTFOLIO_REPORT.md`
+  - `python3 scripts/generate_manifest.py --repo-root . --output dist/release_manifest.json`
+  - `python3 scripts/build_release_bundle.py --repo-root . --output-dir dist --release-summary docs/RELEASE_SUMMARY.md`
+  - `python3 scripts/release_prep.py --repo-root . --output-notes docs/RELEASE_NOTES.md`
+  - Optional full run with live demos: `python3 scripts/release_prep.py --repo-root . --output-notes docs/RELEASE_NOTES.md --run-demo --agent-url http://localhost:8002`
 
 ## Post-release
 - Verify GitHub Actions CI passed on the tagged commit.

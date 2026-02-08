@@ -28,6 +28,16 @@ def load_jsonl(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
     return rows
 
 
+def load_text_records(path: Path, limit: int | None = None) -> list[dict[str, str]]:
+    rows = load_jsonl(path, limit=limit)
+    out: list[dict[str, str]] = []
+    for row in rows:
+        text = row.get("text")
+        if isinstance(text, str) and text.strip():
+            out.append({"source": str(row.get("source", "conversation_synthetic")), "text": text})
+    return out
+
+
 def render_json(data: dict[str, Any]) -> str:
     return json.dumps(data, ensure_ascii=True, sort_keys=True)
 
@@ -118,8 +128,10 @@ def build_tweetsumm_example(row: dict[str, Any]) -> dict[str, str] | None:
 def build_sft_records(
     synthetic_cases: list[dict[str, Any]],
     tweetsumm_rows: list[dict[str, Any]],
+    conversation_rows: list[dict[str, str]],
     max_synthetic: int | None,
     max_tweetsumm: int | None,
+    max_conversation: int | None,
 ) -> list[dict[str, str]]:
     records: list[dict[str, str]] = []
 
@@ -135,6 +147,8 @@ def build_sft_records(
             continue
         records.append(ex)
         used += 1
+
+    records.extend(conversation_rows[: max_conversation or len(conversation_rows)])
 
     return records
 
@@ -270,6 +284,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-cases", type=Path, default=Path("data/processed/synthetic_cases_train.jsonl"))
     parser.add_argument("--val-cases", type=Path, default=Path("data/processed/synthetic_cases_val.jsonl"))
     parser.add_argument("--tweetsumm", type=Path, default=Path("data/processed/tweetsumm_pairs.jsonl"))
+    parser.add_argument(
+        "--conversation-records-train",
+        type=Path,
+        default=Path("data/processed/conversation_sft_train.jsonl"),
+    )
+    parser.add_argument(
+        "--conversation-records-val",
+        type=Path,
+        default=Path("data/processed/conversation_sft_val.jsonl"),
+    )
     parser.add_argument("--prepared-train", type=Path, default=Path("data/processed/sft_train_prepared.jsonl"))
     parser.add_argument("--prepared-val", type=Path, default=Path("data/processed/sft_val_prepared.jsonl"))
     parser.add_argument("--output-dir", type=Path, default=Path("models/sft_qlora"))
@@ -277,6 +301,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-tweetsumm-train", type=int, default=2000)
     parser.add_argument("--max-synthetic-val", type=int, default=1000)
     parser.add_argument("--max-tweetsumm-val", type=int, default=200)
+    parser.add_argument("--max-conversation-train", type=int, default=3000)
+    parser.add_argument("--max-conversation-val", type=int, default=500)
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=16)
@@ -299,18 +325,30 @@ def main() -> None:
     train_cases = load_jsonl(args.train_cases, limit=args.max_synthetic_train)
     val_cases = load_jsonl(args.val_cases, limit=args.max_synthetic_val)
     tweetsumm_rows = load_jsonl(args.tweetsumm)
+    conversation_train_rows = load_text_records(
+        args.conversation_records_train,
+        limit=args.max_conversation_train,
+    )
+    conversation_val_rows = load_text_records(
+        args.conversation_records_val,
+        limit=args.max_conversation_val,
+    )
 
     train_rows = build_sft_records(
         train_cases,
         tweetsumm_rows,
+        conversation_train_rows,
         max_synthetic=args.max_synthetic_train,
         max_tweetsumm=args.max_tweetsumm_train,
+        max_conversation=args.max_conversation_train,
     )
     val_rows = build_sft_records(
         val_cases,
         tweetsumm_rows,
+        conversation_val_rows,
         max_synthetic=args.max_synthetic_val,
         max_tweetsumm=args.max_tweetsumm_val,
+        max_conversation=args.max_conversation_val,
     )
 
     write_jsonl(args.prepared_train, train_rows)

@@ -1,0 +1,616 @@
+{
+  "scenarios": [
+    {
+      "scenario": "damaged_evidence",
+      "session_id": "SES-e4aba13c50c9",
+      "messages": [
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-e4aba13c50c9",
+            "case_id": "CASE-5e020d24fb8d",
+            "assistant_message": "Hi, I can help with refund, return, replacement, missing/wrong item, late delivery, or cancellation.",
+            "status_chip": "Awaiting User Info",
+            "controls": [
+              {
+                "control_type": "text",
+                "field": "identifier",
+                "label": "Share order ID, email, or phone last 4.",
+                "options": []
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-e4aba13c50c9",
+            "case_id": "CASE-5e020d24fb8d",
+            "assistant_message": "Select your order.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "dropdown",
+                "field": "selected_order_id",
+                "label": "Select order",
+                "options": [
+                  {
+                    "label": "ORD-1001 (delivered)",
+                    "value": "ORD-1001"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.246362+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-e4aba13c50c9",
+            "case_id": "CASE-5e020d24fb8d",
+            "assistant_message": "Select item(s) to continue.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "multiselect",
+                "field": "selected_item_ids",
+                "label": "Select item(s)",
+                "options": [
+                  {
+                    "label": "ITEM-1 (electronics)",
+                    "value": "ITEM-1"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.246362+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.333664+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-e4aba13c50c9",
+            "case_id": "CASE-5e020d24fb8d",
+            "assistant_message": "Select the reason for your request.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "buttons",
+                "field": "reason",
+                "label": "Reason",
+                "options": [
+                  {
+                    "label": "Refund Request",
+                    "value": "refund_request"
+                  },
+                  {
+                    "label": "Return Request",
+                    "value": "return_request"
+                  },
+                  {
+                    "label": "Replacement",
+                    "value": "defective"
+                  },
+                  {
+                    "label": "Cancel Order",
+                    "value": "cancel_order"
+                  },
+                  {
+                    "label": "Missing / Wrong Item",
+                    "value": "wrong_item"
+                  },
+                  {
+                    "label": "Damaged",
+                    "value": "damaged"
+                  },
+                  {
+                    "label": "Late Delivery",
+                    "value": "late_delivery"
+                  },
+                  {
+                    "label": "Changed Mind",
+                    "value": "changed_mind"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.246362+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.333664+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-e4aba13c50c9",
+            "case_id": "CASE-5e020d24fb8d",
+            "assistant_message": "Please upload a photo of the item or packaging to continue.",
+            "status_chip": "Awaiting Evidence",
+            "controls": [
+              {
+                "control_type": "file_upload",
+                "field": "evidence_uploaded",
+                "label": "Upload damage photo",
+                "options": []
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.246362+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.333664+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-e4aba13c50c9",
+            "case_id": "CASE-5e020d24fb8d",
+            "assistant_message": "Refund/return initiated. Amount: 130.00. RMA: RMA-CFA7D30F21D7. Label: https://labels.local/LBL-19E5A1F52ADE.pdf. Are you satisfied?",
+            "status_chip": "Refund Pending",
+            "controls": [
+              {
+                "control_type": "buttons",
+                "field": "satisfaction",
+                "label": "Are you satisfied with this resolution?",
+                "options": [
+                  {
+                    "label": "Yes, end chat",
+                    "value": "yes"
+                  },
+                  {
+                    "label": "No, continue",
+                    "value": "no"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.246362+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.333664+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.517031+00:00",
+                "event": "Evidence uploaded",
+                "detail": "EVD-774D546319A1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.529574+00:00",
+                "event": "Evidence validated",
+                "detail": "pass=True confidence=0.900"
+              },
+              {
+                "time": "2026-02-08T21:59:59.536538+00:00",
+                "event": "Evidence retrieved",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.577399+00:00",
+                "event": "Resolution",
+                "detail": "refund=130.00 rma=RMA-CFA7D30F21D7"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "escalation",
+      "session_id": "SES-0220efbee3df",
+      "messages": [
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-0220efbee3df",
+            "case_id": "CASE-dc37cf18b00c",
+            "assistant_message": "Hi, I can help with refund, return, replacement, missing/wrong item, late delivery, or cancellation.",
+            "status_chip": "Awaiting User Info",
+            "controls": [
+              {
+                "control_type": "text",
+                "field": "identifier",
+                "label": "Share order ID, email, or phone last 4.",
+                "options": []
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-0220efbee3df",
+            "case_id": "CASE-dc37cf18b00c",
+            "assistant_message": "Select your order.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "dropdown",
+                "field": "selected_order_id",
+                "label": "Select order",
+                "options": [
+                  {
+                    "label": "ORD-1001 (delivered)",
+                    "value": "ORD-1001"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.687935+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-0220efbee3df",
+            "case_id": "CASE-dc37cf18b00c",
+            "assistant_message": "Select item(s) to continue.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "multiselect",
+                "field": "selected_item_ids",
+                "label": "Select item(s)",
+                "options": [
+                  {
+                    "label": "ITEM-1 (electronics)",
+                    "value": "ITEM-1"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.687935+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.756820+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-0220efbee3df",
+            "case_id": "CASE-dc37cf18b00c",
+            "assistant_message": "Thanks for the feedback. Choose an alternative path.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "buttons",
+                "field": "reason",
+                "label": "Alternative resolution",
+                "options": [
+                  {
+                    "label": "Replacement",
+                    "value": "replacement"
+                  },
+                  {
+                    "label": "Store credit",
+                    "value": "store_credit"
+                  },
+                  {
+                    "label": "Escalate to human",
+                    "value": "escalate"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.687935+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.756820+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.866391+00:00",
+                "event": "User not satisfied",
+                "detail": "continue"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-0220efbee3df",
+            "case_id": "CASE-dc37cf18b00c",
+            "assistant_message": "Escalation created: ESC-D612106BE9BA. A specialist will follow up. Are you satisfied?",
+            "status_chip": "Escalated",
+            "controls": [
+              {
+                "control_type": "buttons",
+                "field": "satisfaction",
+                "label": "Are you satisfied with this resolution?",
+                "options": [
+                  {
+                    "label": "Yes, end chat",
+                    "value": "yes"
+                  },
+                  {
+                    "label": "No, continue",
+                    "value": "no"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T21:59:59.687935+00:00",
+                "event": "Listed orders",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.756820+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T21:59:59.866391+00:00",
+                "event": "User not satisfied",
+                "detail": "continue"
+              },
+              {
+                "time": "2026-02-08T21:59:59.925150+00:00",
+                "event": "Escalated",
+                "detail": "ESC-D612106BE9BA"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "cancel_processing",
+      "session_id": "SES-3113f5fc11cd",
+      "created_order_id": "ORD-27439C08C2",
+      "messages": [
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-3113f5fc11cd",
+            "case_id": "CASE-8747e2af9fa2",
+            "assistant_message": "Hi, I can help with refund, return, replacement, missing/wrong item, late delivery, or cancellation.",
+            "status_chip": "Awaiting User Info",
+            "controls": [
+              {
+                "control_type": "text",
+                "field": "identifier",
+                "label": "Share order ID, email, or phone last 4.",
+                "options": []
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-3113f5fc11cd",
+            "case_id": "CASE-8747e2af9fa2",
+            "assistant_message": "Select your order.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "dropdown",
+                "field": "selected_order_id",
+                "label": "Select order",
+                "options": [
+                  {
+                    "label": "ORD-59B1BFBF57 (processing)",
+                    "value": "ORD-59B1BFBF57"
+                  },
+                  {
+                    "label": "ORD-27439C08C2 (processing)",
+                    "value": "ORD-27439C08C2"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T22:00:00.041502+00:00",
+                "event": "Listed orders",
+                "detail": "count=2"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-3113f5fc11cd",
+            "case_id": "CASE-8747e2af9fa2",
+            "assistant_message": "Select item(s) to continue.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "multiselect",
+                "field": "selected_item_ids",
+                "label": "Select item(s)",
+                "options": [
+                  {
+                    "label": "ITEM-65A29C04 (electronics)",
+                    "value": "ITEM-65A29C04"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T22:00:00.041502+00:00",
+                "event": "Listed orders",
+                "detail": "count=2"
+              },
+              {
+                "time": "2026-02-08T22:00:00.105028+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-3113f5fc11cd",
+            "case_id": "CASE-8747e2af9fa2",
+            "assistant_message": "Select the reason for your request.",
+            "status_chip": "Awaiting User Choice",
+            "controls": [
+              {
+                "control_type": "buttons",
+                "field": "reason",
+                "label": "Reason",
+                "options": [
+                  {
+                    "label": "Refund Request",
+                    "value": "refund_request"
+                  },
+                  {
+                    "label": "Return Request",
+                    "value": "return_request"
+                  },
+                  {
+                    "label": "Replacement",
+                    "value": "defective"
+                  },
+                  {
+                    "label": "Cancel Order",
+                    "value": "cancel_order"
+                  },
+                  {
+                    "label": "Missing / Wrong Item",
+                    "value": "wrong_item"
+                  },
+                  {
+                    "label": "Damaged",
+                    "value": "damaged"
+                  },
+                  {
+                    "label": "Late Delivery",
+                    "value": "late_delivery"
+                  },
+                  {
+                    "label": "Changed Mind",
+                    "value": "changed_mind"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T22:00:00.041502+00:00",
+                "event": "Listed orders",
+                "detail": "count=2"
+              },
+              {
+                "time": "2026-02-08T22:00:00.105028+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              }
+            ]
+          }
+        },
+        {
+          "role": "assistant",
+          "payload": {
+            "session_id": "SES-3113f5fc11cd",
+            "case_id": "CASE-8747e2af9fa2",
+            "assistant_message": "Order cancellation approved because the item has not shipped yet. Are you satisfied?",
+            "status_chip": "Resolved",
+            "controls": [
+              {
+                "control_type": "buttons",
+                "field": "satisfaction",
+                "label": "Are you satisfied with this resolution?",
+                "options": [
+                  {
+                    "label": "Yes, end chat",
+                    "value": "yes"
+                  },
+                  {
+                    "label": "No, continue",
+                    "value": "no"
+                  }
+                ]
+              }
+            ],
+            "timeline": [
+              {
+                "time": "2026-02-08T22:00:00.041502+00:00",
+                "event": "Listed orders",
+                "detail": "count=2"
+              },
+              {
+                "time": "2026-02-08T22:00:00.105028+00:00",
+                "event": "Listed order items",
+                "detail": "count=1"
+              },
+              {
+                "time": "2026-02-08T22:00:00.221496+00:00",
+                "event": "Cancel approved",
+                "detail": "order=ORD-59B1BFBF57"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -28,6 +28,18 @@ def load_jsonl(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
     return rows
 
 
+def merge_pair_sources(
+    base_pairs: list[dict[str, Any]],
+    conversation_pairs: list[dict[str, Any]],
+    max_base: int | None,
+    max_conversation: int | None,
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    merged.extend(base_pairs[: max_base or len(base_pairs)])
+    merged.extend(conversation_pairs[: max_conversation or len(conversation_pairs)])
+    return merged
+
+
 def render_json(data: dict[str, Any]) -> str:
     return json.dumps(data, ensure_ascii=True, sort_keys=True)
 
@@ -238,6 +250,12 @@ def parse_args() -> argparse.Namespace:
         "--train-pairs", type=Path, default=Path("data/processed/dpo_pairs_train.jsonl"), help="Raw DPO pairs"
     )
     parser.add_argument(
+        "--conversation-train-pairs",
+        type=Path,
+        default=Path("data/processed/conversation_dpo_pairs_train.jsonl"),
+        help="Conversation DPO preference pairs",
+    )
+    parser.add_argument(
         "--val-pairs", type=Path, default=None, help="Optional val pairs path; split train if omitted"
     )
     parser.add_argument("--prepared-train", type=Path, default=Path("data/processed/dpo_train_prepared.jsonl"))
@@ -246,6 +264,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--adapter-init-dir", type=Path, default=Path("models/sft_qlora/adapter"))
     parser.add_argument("--max-train", type=int, default=5000)
     parser.add_argument("--max-val", type=int, default=500)
+    parser.add_argument("--max-conversation-train", type=int, default=3000)
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=16)
@@ -267,7 +286,17 @@ def resolve_model(model_arg: str) -> str:
 def main() -> None:
     args = parse_args()
 
-    raw_train = load_jsonl(args.train_pairs)
+    base_train = load_jsonl(args.train_pairs)
+    conversation_train = load_jsonl(
+        args.conversation_train_pairs,
+        limit=args.max_conversation_train,
+    )
+    raw_train = merge_pair_sources(
+        base_train,
+        conversation_train,
+        max_base=args.max_train,
+        max_conversation=args.max_conversation_train,
+    )
     if args.val_pairs is not None:
         raw_val = load_jsonl(args.val_pairs)
     else:
@@ -286,6 +315,9 @@ def main() -> None:
 
     summary = {
         "model": model_id,
+        "base_pairs": len(base_train),
+        "conversation_pairs": len(conversation_train),
+        "merged_pairs": len(raw_train) + len(raw_val),
         "prepared_train_rows": len(train_rows),
         "prepared_val_rows": len(val_rows),
         "prepared_train_path": str(args.prepared_train),
