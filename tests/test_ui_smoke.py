@@ -10,7 +10,7 @@ def test_ui_file_exists_and_has_chat_features():
     p = REPO_ROOT / "services" / "ui" / "app.py"
     assert p.exists()
     content = p.read_text(encoding="utf-8")
-    assert "ResolveFlow Support Chatbot" in content
+    assert "policyLLM-support-bot" in content
     assert "Start New Chat" in content
     assert "Resume Session" in content
     assert "Model Runtime" in content

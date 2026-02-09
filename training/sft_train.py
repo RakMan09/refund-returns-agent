@@ -279,7 +279,7 @@ def run_training(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="SFT QLoRA trainer for refund-returns-agent")
+    parser = argparse.ArgumentParser(description="SFT QLoRA trainer for policyLLM-support-bot")
     parser.add_argument("--model", default="mistral-7b-instruct-v0.2", help="Preset name or HF model id")
     parser.add_argument("--train-cases", type=Path, default=Path("data/processed/synthetic_cases_train.jsonl"))
     parser.add_argument("--val-cases", type=Path, default=Path("data/processed/synthetic_cases_val.jsonl"))

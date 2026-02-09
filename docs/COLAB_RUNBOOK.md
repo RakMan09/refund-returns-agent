@@ -5,8 +5,8 @@ Use this runbook in a fresh Colab runtime.
 ## Setup
 ```bash
 %cd /content
-!git clone https://github.com/<YOUR_USERNAME>/refund-returns-agent.git
-%cd /content/refund-returns-agent
+!git clone https://github.com/<YOUR_USERNAME>/policyLLM-support-bot.git
+%cd /content/policyLLM-support-bot
 
 !python -m pip install -U pip
 !python -m pip install -e '.[train,dev]'

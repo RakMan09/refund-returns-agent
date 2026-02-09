@@ -1,11 +1,10 @@
 # Contributing Guide
 
-Thanks for contributing to `refund-returns-agent`.
+Thanks for contributing to `policyLLM-support-bot`.
 
 ## Development Setup
 
 ```bash
-cd "/Users/raksh/Desktop/Refund Returns Agent"
 cp .env.example .env
 python3 -m pip install -e '.[dev]'
 ```
@@ -49,4 +48,3 @@ Before tagging a release:
 ```bash
 python3 scripts/release_prep.py --repo-root . --output-notes docs/RELEASE_NOTES.md
 ```
-

@@ -1,24 +1,23 @@
 # GitHub Setup Guide
 
-Use this guide to publish the project cleanly as `refund-returns-agent` (product name: ResolveFlow Support Chatbot).
+Use this guide to publish the project cleanly as `policyLLM-support-bot`.
 
 ## 1) Initialize Local Git (if needed)
 
 ```bash
-cd "/Users/raksh/Desktop/Refund Returns Agent"
 git init
 git branch -M main
 ```
 
 ## 2) Create GitHub Repository
 
-1. Create a new GitHub repo named `refund-returns-agent`.
+1. Create a new GitHub repo named `policyLLM-support-bot`.
 2. Do not add a README/license/gitignore from GitHub UI (repo already has them).
 
 ## 3) Connect Remote and Push
 
 ```bash
-git remote add origin git@github.com:<YOUR_USERNAME>/refund-returns-agent.git
+git remote add origin git@github.com:<YOUR_USERNAME>/policyLLM-support-bot.git
 git add .
 git commit -m "Initial portfolio release"
 git push -u origin main

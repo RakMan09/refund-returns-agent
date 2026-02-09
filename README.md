@@ -1,141 +1,114 @@
-# ResolveFlow Support Chatbot
+# policyLLM-support-bot
 
-`refund-returns-agent` is a production-style portfolio project for a stateful, multi-turn customer-support chatbot that handles refund, return, replacement, cancellation, and escalation workflows end-to-end.
+Policy-grounded, stateful customer-support chatbot for refunds, returns, replacements, and escalations.
 
-## What this project does
-- Runs a real guided chat, not a single-shot form.
-- Maintains session state and slot-filling in Postgres.
-- Uses tool/function calling with strict schemas and logging.
-- Applies policy as final authority for decisions and payout amounts.
-- Supports evidence upload and validation for damage-related claims.
-- Includes LLM training pipelines (SFT QLoRA + DPO), eval harnesses, guardrails, and release automation.
+## Product summary
+`policyLLM-support-bot` is an end-to-end conversational support system that combines:
+- multi-turn guided chat UX,
+- strict tool/function calling,
+- deterministic policy enforcement,
+- optional LLM assistance (hybrid/llm modes),
+- evidence handling,
+- and automated evaluation/release gates.
 
-## Main use cases
-- Refund request
-- Return request
-- Replacement request
-- Cancel order (processing only)
-- Wrong/missing item
-- Damaged item (with evidence requirement)
-- Late delivery
-- No order ID fallback via email or phone-last4
+## What it does
+- Runs a true chat flow until resolution, satisfaction, or explicit exit.
+- Collects missing fields via guided UI controls (not guessing).
+- Supports refund/return/replacement/cancel/escalation case types.
+- Enforces policy server-side before any side-effect action.
+- Logs tool calls, decisions, and timeline events for traceability.
 
-## Tech stack
-- `Python 3.11+`
-- `FastAPI` for tool server and agent server
-- `Postgres` for sessions, cases, orders, evidence metadata, and logs
-- `Streamlit` for multi-turn chat UI
-- `Pydantic` for strict request/response schemas
-- `Transformers + PEFT + TRL` for QLoRA SFT and DPO
-- `Docker Compose` for local orchestration
-- `pytest + ruff` for test/lint quality gates
-- `GitHub Actions` for CI smoke and release-prep checks
+## Core capabilities
+- Session state + slot filling in Postgres
+- Tool schemas with validated payloads
+- Idempotent write tools for returns, labels, replacements, escalations
+- Evidence upload + validation workflow
+- Guardrails for prompt injection, fraud/bypass, and unsafe requests
+- Resume-by-session support
+
+## Technology used
+- Backend APIs: `FastAPI`
+- Database: `Postgres`
+- UI: `Streamlit`
+- Schemas/validation: `Pydantic`
+- Model stack: `Transformers`, `PEFT`, `TRL` (SFT + DPO)
+- Testing/linting: `pytest`, `ruff`
+- Packaging/orchestration: `Docker`, `Docker Compose`
+- CI/CD checks: `GitHub Actions`
 
 ## Architecture
 ```text
-Streamlit UI (chat + guided controls + timeline + test order panel)
-    |
-    v
-Agent Server (FastAPI)
-- conversation state machine + slot filling
-- guardrails (injection/fraud/PII/refusal)
-- LLM-assisted advisor modes (deterministic/hybrid/llm)
-    |
-    v
-Tool Server (FastAPI)
-- read/write tools with schema validation
-- idempotent side-effect tools (return, label, replacement, escalation)
-- evidence upload + validation + retrieval
-    |
-    v
-Postgres + local evidence storage
-- sessions, messages, tool traces, orders, status, evidence records
+Web Chat UI (guided controls + timeline)
+        |
+        v
+Agent Server
+- state machine
+- guardrails
+- llm advisor routing
+        |
+        v
+Tool Server
+- policy and eligibility checks
+- side-effect business tools
+- evidence persistence and validation
+        |
+        v
+Postgres + evidence storage
 ```
 
-## LLM modes
-Configured via `.env`:
-- `AGENT_MODE=deterministic`: no model inference, pure policy/state machine
-- `AGENT_MODE=hybrid`: LLM-assisted reasoning with deterministic fallback
-- `AGENT_MODE=llm`: strict model path, fails when model is unavailable
+## LLM runtime modes
+- `deterministic`: policy/state-machine only
+- `hybrid`: LLM-assisted responses with deterministic fallback
+- `llm`: LLM-required mode
 
-Runtime status endpoint:
+Model runtime status is exposed at:
 - `GET /chat/model/status`
 
-## Run locally
-```bash
-cd "/Users/raksh/Desktop/Refund Returns Agent"
-cp .env.example .env
-docker compose up -d --build
-```
+## Public demo usage (when hosted)
+1. Open the hosted chatbot URL.
+2. Start a chat and provide an identifier (order id/email/phone-last4).
+3. Follow guided controls for order, item, reason, and preferred resolution.
+4. Upload evidence if requested.
+5. Confirm satisfaction or request alternatives/escalation.
+6. Use session resume to continue an existing case.
 
-Open:
-- UI: `http://localhost:8501`
-- Agent health: `http://localhost:8002/health`
-- Tool health: `http://localhost:8001/health`
+## Demo utility in UI
+- Create test orders from the sidebar.
+- View order list currently in system.
+- Inspect case timeline and tool-driven status progression.
 
-## How to use
-1. Start a new chat.
-2. Enter identifier (`order_id`, email, or phone last4).
-3. Select order and item(s) from guided controls.
-4. Choose issue/reason and preferred resolution.
-5. Upload evidence when prompted.
-6. Confirm satisfaction or continue to alternatives/escalation.
-7. Resume any session later with session ID.
+## Training and evaluation
+The repo includes:
+- synthetic data + conversation dataset builders,
+- SFT preparation/training scripts,
+- DPO preparation/training scripts,
+- offline/conversational/safety eval suites,
+- runtime and release readiness checks.
 
-## Built-in test/demo features
-- Create test orders directly from the UI.
-- View live case timeline and status chips.
-- Run scripted end-to-end scenarios:
-```bash
-python3 scripts/demo_scenarios.py --agent-url http://localhost:8002 --output eval/results/demo_scenarios.json
-```
-
-## Data, training, and eval
-Datasets used:
-- Olist e-commerce (orders/products/payments/shipping)
+Primary datasets:
+- Olist (orders/e-commerce)
 - Customer Support on Twitter (language patterns)
-- TweetSumm (dialog summary supervision)
-- Approach B evidence simulation support (catalog + anomaly dirs via `.env`)
+- TweetSumm (summary supervision)
 
-Core scripts:
-- `pipelines/build_dataset.py`
-- `pipelines/build_conversation_dataset.py`
-- `training/sft_train.py`
-- `training/dpo_train.py`
-- `eval/eval_harness.py`
-- `eval/conversation_eval.py`
-- `eval/safety_suite.py`
-- `eval/stack_smoke.py`
+## Hosting this publicly
+Yes, this project can be hosted as an online demo for anyone to use.
 
-## Quality + release commands
-```bash
-ruff check .
-pytest -q
-python3 scripts/release_prep.py --repo-root . --output-notes docs/RELEASE_NOTES.md --run-demo --run-runtime-smoke --runtime-smoke-require-ready --agent-url http://localhost:8002
-python3 scripts/ship_ready_gate.py --repo-root . --max-age-hours 168 --require-runtime-smoke --output eval/results/ship_ready_gate.json
-```
+Recommended deployment:
+1. `Render` or `Railway` with 3 services (`ui`, `agent_server`, `tool_server`) + managed Postgres.
+2. Start public demos in `AGENT_MODE=deterministic`.
+3. Switch to `AGENT_MODE=hybrid` after attaching trained adapter artifacts.
 
-## Can this be hosted online?
-Yes. This project can be deployed as a live demo website.
+Deployment guide:
+- `docs/ONLINE_DEPLOYMENT.md`
 
-Recommended options:
-1. `Render` or `Railway`: deploy 3 services (agent, tool, UI) + managed Postgres.
-2. `Fly.io`: deploy FastAPI services and Streamlit as separate apps.
-3. `AWS/GCP/Azure`: container services + managed database.
-
-Deployment notes:
-- Keep `AGENT_MODE=deterministic` for lightweight public demo without GPU.
-- Use `AGENT_MODE=hybrid` with adapter artifacts mounted for richer behavior.
-- Store secrets as platform env vars (never in git).
-- Persist `/data/evidence` with attached volume/object storage.
-
-## Documentation index
-- `/Users/raksh/Desktop/Refund Returns Agent/docs/GITHUB_SETUP.md`
-- `/Users/raksh/Desktop/Refund Returns Agent/docs/COLAB_RUNBOOK.md`
-- `/Users/raksh/Desktop/Refund Returns Agent/docs/RELEASE_CHECKLIST.md`
-- `/Users/raksh/Desktop/Refund Returns Agent/docs/MODEL_STATUS.md`
-- `/Users/raksh/Desktop/Refund Returns Agent/docs/METRICS.md`
-- `/Users/raksh/Desktop/Refund Returns Agent/docs/PORTFOLIO_REPORT.md`
+## Repository docs
+- `docs/GITHUB_SETUP.md`
+- `docs/COLAB_RUNBOOK.md`
+- `docs/ONLINE_DEPLOYMENT.md`
+- `docs/RELEASE_CHECKLIST.md`
+- `docs/MODEL_STATUS.md`
+- `docs/METRICS.md`
+- `docs/PORTFOLIO_REPORT.md`
 
 One-command release prep (with live demos):
 ```bash

@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # isolated sqlite DB for tool-server tests
-DB_PATH = Path("/tmp/refund_agent_test.db")
+DB_PATH = Path("/tmp/policyllm_support_bot_test.db")
 if DB_PATH.exists():
     DB_PATH.unlink()
 os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{DB_PATH}"

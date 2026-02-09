@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/refund_agent",
+        default="postgresql+psycopg://postgres:postgres@localhost:5432/policyllm_support_bot",
         alias="DATABASE_URL",
     )
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")

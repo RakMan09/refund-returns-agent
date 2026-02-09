@@ -1,0 +1,56 @@
+databases:
+  - name: policyllm-support-bot-db
+    databaseName: policyllm_support_bot
+    user: policyllm_support_bot
+
+services:
+  - type: web
+    name: policyllm-support-bot-tool-server
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -e .
+    startCommand: uvicorn services.tool_server.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: policyllm-support-bot-db
+          property: connectionString
+      - key: LOG_LEVEL
+        value: INFO
+      - key: EVIDENCE_STORAGE_DIR
+        value: data/evidence
+
+  - type: web
+    name: policyllm-support-bot-agent-server
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -e .
+    startCommand: uvicorn services.agent_server.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: TOOL_SERVER_URL
+        fromService:
+          type: web
+          name: policyllm-support-bot-tool-server
+          property: url
+      - key: AGENT_MODE
+        value: deterministic
+      - key: LLM_MODEL_ID
+        value: mistralai/Mistral-7B-Instruct-v0.2
+      - key: LLM_ADAPTER_DIR
+        value: models/dpo_qlora/adapter
+      - key: LLM_DEVICE
+        value: auto
+      - key: LLM_DTYPE
+        value: auto
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: web
+    name: policyllm-support-bot-ui
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -e .
+    startCommand: streamlit run services/ui/app.py --server.address 0.0.0.0 --server.port $PORT
+    envVars:
+      - key: AGENT_SERVER_URL
+        fromService:
+          type: web
+          name: policyllm-support-bot-agent-server
+          property: url

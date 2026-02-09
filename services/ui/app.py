@@ -23,7 +23,7 @@ STATUS_COLORS = {
     "Status": "#457b9d",
 }
 
-st.set_page_config(page_title="ResolveFlow Support Chatbot", layout="wide")
+st.set_page_config(page_title="policyLLM-support-bot", layout="wide")
 st.markdown(
     """
     <style>
@@ -160,7 +160,7 @@ st.markdown(
 st.markdown(
     """
     <div class="hero">
-      <h1>ResolveFlow Support Chatbot</h1>
+      <h1>policyLLM-support-bot</h1>
       <p>Stateful multi-turn support with policy-grounded decisions, evidence flow, and timeline tracing.</p>
     </div>
     """,

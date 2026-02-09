@@ -28,7 +28,7 @@ from services.agent_server.app.tool_client import ToolClient
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 logger = logging.getLogger("agent_server")
 
-app = FastAPI(title="resolveflow-support-chatbot-agent-server")
+app = FastAPI(title="policyllm-support-bot-agent-server")
 llm_advisor = LLMAdvisor()
 
 

@@ -244,7 +244,7 @@ def run_dpo_training(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="DPO trainer for refund-returns-agent")
+    parser = argparse.ArgumentParser(description="DPO trainer for policyLLM-support-bot")
     parser.add_argument("--model", default="mistral-7b-instruct-v0.2", help="Preset name or HF model id")
     parser.add_argument(
         "--train-pairs", type=Path, default=Path("data/processed/dpo_pairs_train.jsonl"), help="Raw DPO pairs"

@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 include = ["services*"]
 
 [project]
-name = "refund-returns-agent"
+name = "policyLLM-support-bot"
 version = "0.1.0"
-description = "Generic customer support refund/returns agent"
+description = "Stateful policy-grounded customer support chatbot"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
